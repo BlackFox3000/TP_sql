@@ -1,0 +1,164 @@
+--------------------------------------------------------------------------------------------------------------------------------
+
+--                                               TP3_Conception
+
+--------------------------------------------------------------------------------------------------------------------------------
+--                                                 Drop Table
+--------------------------------------------------------------------------------------------------------------------------------
+DROP  TABLE EnsemblesContienAttribut PURGE;
+DROP  TABLE EnsemblesAttributs PURGE;
+--------------------------------------------------------------------------------------------------------------------------------
+--                                                  Table
+--------------------------------------------------------------------------------------------------------------------------------
+Create TABLE EnsemblesAttributs(
+NumEnsAtt NUMBER(4),
+CONSTRAINT PK_NumEnsAtt PRIMARY KEY(NumEnsAtt));
+
+Create Table  EnsemblesContienAttribut( 
+NumEnsAtt NUMBER(4),
+NomAtt varchar(4),
+CONSTRAINT PK_EnsembleContientAttribut PRIMARY KEY(NumEnsAtt,NomAtt),
+    constraint FK_NumEnsAtt FOREIGN KEY (NumEnsAtt) references EnsemblesAttributs on delete cascade);
+
+--------------------------------------------------------------------------------------------------------------------------------
+--                                                 Séquence                                            
+--------------------------------------------------------------------------------------------------------------------------------
+-- create sequence nom_sequence  --  Génère une séquence d'un clef initialisé  à 0
+-- nom_sequence.NextVal          -- Obtenir une nouvelle valeur
+--------------------------------------------------------------------------------------------------------------------------------
+create sequence NumEnsAtt;   
+  
+------------------------------------- ------------------------------------------------------------------------------------------
+--                                                  Fonction
+--------------------------------------------------------------------------------------------------------------------------------
+-- CREER UNE FONCTION :
+
+-- CREATE OR REPLACE FUNCTION CreerEnsAHVide RETURN NUMBER
+-- AS
+-- Declare
+--  Déclaration 
+-- Begin
+--   --ICI instruction SQL  ( ici une seul ligne de code )
+-- END;
+-- / -- permet d'ecrire du PSQL
+------------------------------------ -------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION CreerEnsAttVide RETURN NUMBER
+ AS
+   var Number(5);
+ Begin
+   --ICI instruction SQL  ( ici une seul ligne de code ) 
+    insert into EnsemblesAttributs values( NumEnsAtt.NextVal)
+    returning NumEnsAtt into var;
+    Return var;
+ END;
+/
+
+
+Declare
+ num Number(5);
+ begin
+           num:=CreerEnsAttVide;
+            --print( num);
+ end;
+/
+
+------------------------------------- ------------------------------------------------------------------------------------------
+--                                                  Procédure
+--------------------------------------------------------------------------------------------------------------------------------
+--CREATE PROCEDURE procedure_name (parameter) 
+--     IS
+--          declaration_section
+--      BEGIN
+--          ...
+--      END procedure_name;
+--------------------------------------------------------------------------------------------------------------------------------
+CREATE OR REPLACE PROCEDURE AjouterAtt(p_NomAtt varchar, p_NumEnsAtt number)
+      IS
+      BEGIN
+          INSERT INTO EnsemblesContienAttribut values ( p_NumEnsAtt, p_NomAtt );  
+      END AjouterAtt;
+/
+------------------------------------- ------------------------------------------------------------------------------------------
+--                                                     Test
+--------------------------------------------------------------------------------------------------------------------------------
+SELECT * FROM EnsemblesAttributs;
+SELECT * FROM EnsemblesContienAttribut;
+    
+Execute AjouterAtt('A', 63);
+------------------------------------- ------------------------------------------------------------------------------------------
+--                                                  Fonction
+--                                                 CreerEnsAtt
+--------------------------------------------------------------------------------------------------------------------------------
+-- CREER UNE FONCTION :
+
+-- CREATE OR REPLACE FUNCTION CreerEnsAtt(p_ChaineAtt varchar)RETURN NUMBER
+-- AS
+-- Declare
+--  Déclaration 
+-- Begin
+--  
+--    returning NumEnsAtt into var;
+--    Return var;
+-- END;
+-- / -- permet d'ecrire du PSQL
+------------------------------------ -------------------------------------------------------------------------------------------
+Create or replace function  CreerEnsAtt (p_ChaineAtt IN OUT varchar) return number as 
+lengthFirstWord number(5);
+posFirstVir number(5);
+posSecondVir number(5);
+begin
+
+p_ChaineAtt:=TRIM(p_ChaineAtt);     --suppression des espaces
+
+if(p_ChaineAtt!=null)
+    then 
+        if( INSTR(p_ChaineAtt,',',1)=0)            --test pas de virgule
+            then AjouterAtt(p_ChaineAtt, CreerEnsAttVide);
+        end if;
+
+        lengthFirstWord:=(INSTR(p_ChaineAtt,',',1)-1)  ;
+        AjouterAtt(substr(p_ChaineAtt,1,lengthFirstWord), CreerEnsAttVide );      --on fait le cas avant la premiere virgule
+        
+         posFirstVir:=(INSTR(p_ChaineAtt,',',lengthFirstWord)) ;
+         posSecondVir:=(INSTR(p_ChaineAtt,',',posFirstVir))  ;
+        
+        
+        while(posSecondVir!=0) loop
+        
+            AjouterAtt(posSecondVir-posFirstVir, CreerEnsAttVide) ; --on fait le cas où on est entre 2 virgules ex: '...B,C,...'
+            posFirstVir:=posSecondVir ;
+            posSecondVir:=(INSTR(p_ChaineAtt,',',posFirstVir)) ;
+        END loop;
+
+end if;
+    return posSecondVir ;
+end;
+/
+------------------------------------- ------------------------------------------------------------------------------------------
+--                                                     Test
+--------------------------------------------------------------------------------------------------------------------------------
+
+--execute CreerEnsAtt('A,B,C,D,E,F,G,H,I'); a lancé depuis la fonction
+
+------------------------------------- ------------------------------------------------------------------------------------------
+--                                                  Fonction
+--                                       EnsAtt2Chaine(p-NumEnsAtt number) return varcha;
+--------------------------------------------------------------------------------------------------------------------------------
+
+Create or replace function EnsAtt2Chaine(p_NumEnsAtt number) return varchar as chaine varchar(10);
+
+
+Begin
+Select p_NumEnsAtt into chaine 
+from EnsemblesAttributs
+ORDER BY p_NumEnsAtt ;
+
+
+chaine:= chaine||','||chaine;
+return chaine;
+end;
+/
+
+          
+
+
