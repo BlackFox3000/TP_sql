@@ -1,0 +1,109 @@
+DROP TABLE EnsembleContientAttribut PURGE;
+DROP TABLE EnsemblesAttributs PURGE;
+
+
+CREATE TABLE EnsemblesAttributs(
+    NumEnsAtt Number(5),
+    CONSTRAINT PK_EnsemblesAttributs PRIMARY KEY(NumEnsAtt)
+);
+SELECT * From EnsemblesAttributs;
+
+
+CREATE TABLE EnsembleContientAttribut(
+    NumEnsAtt Number(5),
+    NomAtt VARCHAR(10),
+    CONSTRAINT PK_EnsembleContientAttribut PRIMARY KEY(NumEnsAtt,NomAtt),
+    constraint FK_NumEnsAtt FOREIGN KEY (NumEnsAtt) references EnsemblesAttributs on delete cascade
+);
+SELECT * From EnsembleContientAttribut;
+
+Create sequence NumEnsAtt;
+
+
+Create or replace function  CreerEnsAttVide return number as 
+compt Number (5);
+begin
+    insert into EnsemblesAttributs values(NumEnsAtt.NextVal)
+    returning NumEnsAtt into compt;
+    return compt;
+end;
+/
+
+declare Num Number(5);
+Begin Num := CreerEnsAttVide;end;
+/
+
+
+Create or replace Procedure AjouterAtt(p_NomAtt varchar, p_NumEnsAtt number) is
+begin 
+Insert into  ENSEMBLECONTIENTATTRIBUT values (p_NumEnsAtt,p_NomAtt);
+end;
+/
+
+execute AjouterAtt('B',22);
+
+
+
+
+
+Create or replace function  CreerEnsAtt (p_ChaineAtt IN OUT varchar) return number as 
+lengthFirstWord number(5);
+posFirstVir number(5);
+posSecondVir number(5);
+begin
+
+p_ChaineAtt:=TRIM(p_ChaineAtt);     --suppression des espaces
+
+if(p_ChaineAtt!=null)
+    then 
+        if( INSTR(p_ChaineAtt,',',1)=0)            --test pas de virgule
+            then AjouterAtt(p_ChaineAtt, CreerEnsAttVide);
+        end if;
+
+        lengthFirstWord:=(INSTR(p_ChaineAtt,',',1)-1)  ;
+        AjouterAtt(substr(p_ChaineAtt,1,lengthFirstWord), CreerEnsAttVide );      --on fait le cas avant la premiere virgule
+        
+         posFirstVir:=(INSTR(p_ChaineAtt,',',lengthFirstWord)) ;
+         posSecondVir:=(INSTR(p_ChaineAtt,',',posFirstVir))  ;
+        
+        while(posSecondVir!=0) loop
+        
+            AjouterAtt(posSecondVir-posFirstVir, CreerEnsAttVide) ; --on fait le cas où on est entre 2 virgules ex: '...B,C,...'
+            posFirstVir:=posSecondVir ;
+            posSecondVir:=(INSTR(p_ChaineAtt,',',posFirstVir)) ;
+        END loop;
+
+end if;
+    return posSecondVir ;
+end;
+/
+
+
+--execute CreerEnsAtt('A,B,C,D,E,F,G,H,I');
+
+Create or replace function EnsAtt2Chaine (p_NumEnsAtt number) return varchar as
+chaine varchar(10);
+
+Begin
+    SELECT  p_NumEnsAtt into chaine
+    from ENSEMBLEATTRIBUTS
+    Order by p_NumEnsAtt ;
+    
+    chaine:=chaine||','||chaine;
+
+    return chaine;
+ end;
+ /
+ 
+ select EnsAtt2Chaine(:Num)from dual;
+
+
+
+
+
+
+
+
+
+
+
