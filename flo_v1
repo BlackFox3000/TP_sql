@@ -154,10 +154,11 @@ from EnsemblesAttributs
 ORDER BY p_NumEnsAtt ;
 
 
-chaine:= chaine||','||chaine;
+chaine:= chaine||',';
 return chaine;
 end;
 /
+Select EnsAtt2Chaine(:Num)from dual;
 
           
 
